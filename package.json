@@ -1,6 +1,6 @@
 {
   "name": "queue-stream",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "This module provides a simple stream interface to an AMQP message queue.",
   "main": "index.js",
   "directories": {
