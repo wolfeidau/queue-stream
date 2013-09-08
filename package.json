@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "debug": "~0.7.2",
-    "through": "~2.3.4",
-    "amqp": "~0.1.7"
+    "amqp": "~0.1.7",
+    "through": "~2.3.4"
   }
 }
