@@ -4,13 +4,13 @@ var chai = require('chai');
 
 var log = require('debug')('test:queue-stream');
 var amqp = require('amqp');
-var through = require('through');
+var through = require('through2');
 
 var queueStream = require('../lib/queue-stream.js');
 
 var expect = chai.expect;
 
-var params = {"x-message-ttl": 30000, "x-expires": 1800000, "durable": true, "autoDelete": false};
+var params = {"x-message-ttl": 30000, "x-expires": 1800000, "durable": true, "autoDelete": false, ack: true};
 
 describe('QueueStream', function () {
 
@@ -38,22 +38,25 @@ describe('QueueStream', function () {
       connection.exchange('/test/events/2', {}, function (ex) {
         log('Exchange', ex.name, 'open')
         ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
+        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
+        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
+        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
       })
     }
 
     var connection =
-      amqp.createConnection({url: "amqp://guest:guest@localhost:5672"})
+      amqp.createConnection({url: "amqp://guest:guest@localhost:5672"});
 
     connection.on('ready', function () {
-      log('Connection', 'open')
+      log('Connection', 'open');
 
       queueStream({connection: connection, exchangeName: '/test/events/2', queueName: '/queue/events/123', params: params}, function (err, stream) {
-        expect(err).to.not.exist
-        expect(stream).to.exist
+        expect(err).to.not.exist;
+        expect(stream).to.exist;
 
         stream.bindRoutingKey('TEST', function(){
 
-          stream.pipe(through(function onData(message){
+          stream.pipe(through({ objectMode: true, highWaterMark: 1}).on('data', function onData(message){
             log('onData', message)
             expect(message.text).is.equal('Hello Test');
             stream.end();
