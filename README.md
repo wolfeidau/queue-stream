@@ -6,9 +6,42 @@
 This module provides a simple stream interface to an AMQP message queue. The objective is to provide a small simple way
 of consuming JSON based messages from a queue, with a way of dispatching events based on routing keys used in AMQP.
 
+# Usage
+
+This example is designed to be run from the command line as follows, it will output anything sent via the queue to
+STDOUT.
+
+```javascript
+"use strict";
+
+var es = require('event-stream');
+var amqp = require('amqp');
+var queueStream = require('../lib/queue-stream.js');
+var log = require('debug')('write-stream-to-stdout');
+
+var connection =
+  amqp.createConnection({url: "amqp://guest:guest@localhost:5672"});
+
+var queueParams = {"durable": true};
+
+connection.on('ready', function () {
+  log('Connection', 'open');
+
+  queueStream({connection: connection, exchangeName: 'events/syslog', queueName: 'queue/input', params: queueParams}, function (err, qs) {
+    log('topicStream', 'open');
+    qs.bindRoutingKey('#', function(){
+      log('bindRoutingKey', '#');
+      es.pipeline(qs, es.through(function onData(data) {
+        this.emit('data', data + '\n')
+      }), process.stdout)
+
+    })
+  })
+});
+```
+
 # TODO
 
-* Add support for MQTT.
 * Add the option to just pass an AMQP URL.
 
 ## License

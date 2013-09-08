@@ -15,10 +15,12 @@ var log = require('debug')('write-stream-to-stdout');
 var connection =
   amqp.createConnection({url: "amqp://guest:guest@localhost:5672"});
 
+var queueParams = {"durable": true};
+
 connection.on('ready', function () {
   log('Connection', 'open');
 
-  queueStream({connection: connection, exchangeName: '/events/input', queueName: '/queue/input'}, function (err, qs) {
+  queueStream({connection: connection, exchangeName: 'events/syslog', queueName: 'queue/input', params: queueParams}, function (err, qs) {
     log('topicStream', 'open');
     qs.bindRoutingKey('#', function(){
       log('bindRoutingKey', '#');
