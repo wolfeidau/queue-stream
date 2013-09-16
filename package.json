@@ -14,7 +14,6 @@
     "url": "https://github.com/wolfeidau/queue-stream/"
   },
   "keywords": [
-    "MQTT",
     "AMQP",
     "Streams"
   ],
