@@ -4,72 +4,77 @@ var chai = require('chai');
 
 var log = require('debug')('test:queue-stream');
 var amqp = require('amqp');
+var amqplib = require('amqplib');
 var through = require('through2');
 
 var queueStream = require('../lib/queue-stream.js');
 
 var expect = chai.expect;
 
-var params = {"x-message-ttl": 30000, "x-expires": 1800000, "durable": true, "autoDelete": false, ack: true};
+var params = {durable: true, autoDelete: false, messageTtl: 30000, expires: 1800000};
 
 describe('QueueStream', function () {
 
   it('should create a new queue stream', function (done) {
 
-    var connection =
-      amqp.createConnection({url: "amqp://guest:guest@localhost:5672"});
+    log('Connection', 'open');
 
-    connection.on('ready', function () {
-      log('Connection', 'open');
+    var open = amqplib.connect();
 
-      queueStream({connection: connection, exchangeName: '/test/events', queueName: '/queue/events/234', params: params}, function (err, stream) {
-        expect(err).to.not.exist;
-        expect(stream).to.exist;
-        stream.end();
-        done();
-      });
+    queueStream(open, {exchangeName: '/test/events', queueName: '/queue/events/234', params: params}, function (err, stream) {
+      expect(err).to.not.exist;
+      expect(stream).to.exist;
+      stream.end();
+      done();
     });
 
   });
 
   it('should read data from the queue stream', function (done) {
 
-    function sendData(connection, text) {
-      connection.exchange('/test/events/2', {}, function (ex) {
-        log('Exchange', ex.name, 'open')
-        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
-        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
-        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
-        ex.publish('TEST', JSON.stringify({text: text, timestamp: new Date()}), {contentEncoding: 'utf8', contentType: 'application/json'});
-      })
-    }
 
-    var connection =
-      amqp.createConnection({url: "amqp://guest:guest@localhost:5672"});
+    log('Connection', 'open');
 
-    connection.on('ready', function () {
-      log('Connection', 'open');
+    var open = amqplib.connect();
 
-      queueStream({connection: connection, exchangeName: '/test/events/2', queueName: '/queue/events/123', params: params}, function (err, stream) {
-        expect(err).to.not.exist;
-        expect(stream).to.exist;
+    queueStream(open, {exchangeName: '/test/events2', queueName: '/queue/events/123', params: params}, function (err, stream) {
+      expect(err).to.not.exist;
+      expect(stream).to.exist;
+      stream.bindRoutingKey('TEST', function () {
+        log('bound')
+      });
 
-        stream.bindRoutingKey('TEST', function(){
+      stream.pipe(through({ objectMode: true }, function (chunk, enc, callback) {
+        callback();
+      }));
 
-          stream.pipe(through({ objectMode: true, highWaterMark: 1}).on('data', function onData(message){
-            log('onData', message)
-            expect(message.text).is.equal('Hello Test');
-            stream.end();
-            done();
-          }));
+      var msgs = [];
+
+      stream.on('data', function (data) {
+        log('data', data);
+        msgs.push(data);
+        if(msgs.length == 4)
+          done();
+      });
+
+      open.then(function (conn) {
+        var ok = conn.createChannel();
+        ok = ok.then(function (ch) {
+          log('publish');
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          log('done');
+          //stream.end();
+        });
+
+        return ok;
+      });
 
 
-          sendData(connection, 'Hello Test');
-        })
-
-
-      })
-    })
+    });
 
   })
+
 })
