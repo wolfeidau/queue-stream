@@ -3,7 +3,6 @@
 var chai = require('chai');
 
 var log = require('debug')('test:queue-stream');
-var amqp = require('amqp');
 var amqplib = require('amqplib');
 var through = require('through2');
 
