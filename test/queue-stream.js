@@ -20,7 +20,7 @@ describe('QueueStream', function () {
 
     var open = amqplib.connect();
 
-    queueStream(open, {exchangeName: '/test/events', queueName: '/queue/events/234', params: params}, function (err, stream) {
+    queueStream(open, {exchange: '/test/events', queue: '/queue/events/234', params: params}, function (err, stream) {
       expect(err).to.not.exist;
       expect(stream).to.exist;
       stream.end();
@@ -36,7 +36,7 @@ describe('QueueStream', function () {
 
     var open = amqplib.connect();
 
-    queueStream(open, {exchangeName: '/test/events2', queueName: '/queue/events/123', params: params}, function (err, stream) {
+    queueStream(open, {exchange: '/test/events2', queue: '/queue/events/123', params: params}, function (err, stream) {
       expect(err).to.not.exist;
       expect(stream).to.exist;
       stream.bindRoutingKey('TEST', function () {
