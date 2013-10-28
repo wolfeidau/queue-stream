@@ -52,6 +52,56 @@ describe('QueueStream', function () {
       stream.on('data', function (data) {
         log('data', data);
         msgs.push(data);
+        if(msgs.length == 4) {
+          stream.cancelConsumer().then(function(){
+            stream.end();
+          }, console.warn);
+          done();
+        }
+      });
+
+      open.then(function (conn) {
+        var ok = conn.createChannel();
+        ok = ok.then(function (ch) {
+          log('publish');
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          ch.publish('/test/events2', 'TEST', new Buffer(JSON.stringify({msg: 'test'})));
+          log('done');
+          //stream.end();
+        });
+
+        return ok;
+      });
+
+
+    });
+  });
+
+  it('should read data from the queue stream a second time', function (done) {
+
+
+    log('Connection', 'open');
+
+    var open = amqplib.connect();
+
+    queueStream(open, {exchange: '/test/events2', queue: '/queue/events/123', params: params}, function (err, stream) {
+      expect(err).to.not.exist;
+      expect(stream).to.exist;
+      stream.bindRoutingKey('TEST', function () {
+        log('bound')
+      });
+
+      stream.pipe(through({ objectMode: true }, function (chunk, enc, callback) {
+        callback();
+      }));
+
+      var msgs = [];
+
+      stream.on('data', function (data) {
+        log('data', data);
+        msgs.push(data);
         if(msgs.length == 4)
           done();
       });
